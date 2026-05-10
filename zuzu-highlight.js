@@ -8,23 +8,75 @@
 	var STYLE_ID = 'zuzu-highlight-js-style';
 	var KEYWORDS = new Set( [
 		'abs', 'and', 'as', 'assert', 'async', 'await', 'but', 'can', 'case',
-		'catch', 'ceil', 'class', 'cmp', 'cmpi', 'const', 'contains', 'continue',
-		'debug', 'default', 'die', 'difference', 'do', 'does', 'else', 'elsif',
-		'eq', 'eqi', 'equivalentof', 'export', 'extends', 'false', 'floor', 'fn',
-		'for', 'foreach', 'from', 'function', 'ge', 'gei', 'given', 'gt', 'gti',
-		'if', 'import', 'in', 'instanceof', 'int', 'intersection', 'isa', 'last',
-		'lc', 'le', 'lei', 'length', 'let', 'lt', 'lti', 'method', 'mod', 'my',
-		'nand', 'ne', 'nei', 'new', 'next', 'not', 'not_in', 'null', 'or', 'our',
-		'package', 'print', 'return', 'round', 'say', 'self', 'spawn', 'sqrt',
-		'static', 'sub', 'subsetof', 'supersetof', 'super', 'switch', 'then',
-		'throw', 'trait', 'true', 'try', 'typeof', 'uc', 'union', 'unless', 'use',
-		'warn', 'when', 'while', 'with', 'xor'
+		'catch', 'ceil', 'class', 'clear', 'cmp', 'cmpi', 'const', 'continue',
+		'debug', 'default', 'die', 'do', 'does', 'else', 'eq', 'eqi',
+		'equivalentof', 'extends', 'false', 'floor', 'fn', 'for', 'from',
+		'function', 'ge', 'gei', 'get', 'gt', 'gti', 'has', 'if', 'import',
+		'in', 'instanceof', 'int', 'intersection', 'last', 'lc', 'le', 'lei',
+		'length', 'let', 'lt', 'lti', 'method', 'mod', 'nand', 'ne', 'nei',
+		'new', 'next', 'not', 'null', 'or', 'print', 'return', 'round', 'say',
+		'self', 'set', 'spawn', 'sqrt', 'static', 'subsetof', 'supersetof',
+		'super', 'switch', 'throw', 'trait', 'true', 'try', 'typeof', 'uc',
+		'union', 'unless', 'warn', 'weak', 'while', 'with', 'xor'
 	] );
 
 	var BUILTIN_TYPES = new Set( [
 		'Array', 'Bag', 'Boolean', 'Class', 'Collection', 'Dict', 'Function',
 		'Number', 'Object', 'Pair', 'PairList', 'Set', 'String', 'Trait'
 	] );
+	var IDENTIFIER_SOURCE = '(?:[A-Za-z]|_[A-Za-z0-9_])[A-Za-z0-9_]*';
+	var IDENTIFIER_FLAGS = '';
+	try {
+		new RegExp( '\\p{ID_Start}', 'u' );
+		IDENTIFIER_SOURCE = '(?:\\p{ID_Start}|_[\\p{ID_Continue}_])[\\p{ID_Continue}_]*';
+		IDENTIFIER_FLAGS = 'u';
+	} catch ( err ) {
+	}
+	var IDENTIFIER_RE = new RegExp( '^(?:' + IDENTIFIER_SOURCE + ')$', IDENTIFIER_FLAGS );
+	var TOKEN_PATTERN_SOURCE = [
+		'\\/\\/[^\\n]*',
+		'\\/\\*[\\s\\S]*?\\*\\/',
+		'"""[\\s\\S]*?"""',
+		"'''[\\s\\S]*?'''",
+		'```[\\s\\S]*?```',
+		'"(?:\\\\.|[^"\\\\])*"',
+		"'(?:\\\\.|[^'\\\\])*'",
+		'`(?:\\\\.|[^`\\\\])*`',
+		'\\/(?![\\/\\*=\\s])(?:\\\\.|[^\\/\\\\\\n])+\\/[i]?',
+		'0x[\\da-fA-F]+',
+		'0b[01]+',
+		'\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?',
+		'⊤|⊥|∅',
+		'\\.\\.\\.',
+		'<<<|>>>',
+		'\\*\\*=',
+		'\\?:=',
+		'<=>',
+		'\\?:',
+		'=>',
+		'->|→',
+		'@\\?|@@',
+		'~=',
+		':=',
+		'\\.\\(',
+		'\\{\\{|\\}\\}',
+		'<<|>>',
+		'«|»',
+		'\\.\\.',
+		'==|!=|<=|>=',
+		'≠|≤|≥|≡|≢|≶|≷',
+		'\\+=|-=|\\*=|\\/=|%=|_=',
+		'\\+\\+|--',
+		'\\*\\*',
+		'⊂⊃',
+		'×=|÷=',
+		'[+\\-*/%<>=!?:|&.^~×÷⋀⋁⊻⊼¬∈∉⋃⋂∖\\\\⊂⊃@√⌊⌋⌈⌉]',
+		'[{}()[\\],;.]',
+		'\\s+',
+		IDENTIFIER_SOURCE
+	].join( '|' );
+	var TOKEN_PATTERN_FLAGS = 'g' + IDENTIFIER_FLAGS;
+
 	function escapeHtml( text ) {
 		return text
 			.replace( /&/g, '&amp;' )
@@ -41,7 +93,11 @@
 			return 'comment';
 		}
 
-		if ( /^(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)$/s.test( token ) ) {
+		if ( /^(?:"""[\s\S]*?"""|'''[\s\S]*?'''|```[\s\S]*?```|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)$/s.test( token ) ) {
+			return 'string';
+		}
+
+		if ( /^\/(?![\/\*=\s])(?:\\.|[^\/\\\n])+\/[i]?$/.test( token ) ) {
 			return 'string';
 		}
 
@@ -49,7 +105,11 @@
 			return 'number';
 		}
 
-		if ( /^(?:\.\.\.|<<<|>>>|\*\*=|\?:=|<=>|\?:|=>|->|→|@\?|@@|~=|\{\{|\}\}|<<|>>|«|»|\.\.|==|!=|<=|>=|≠|≤|≥|≡|≢|≶|≷|\+=|-=|\*=|\/=|%=|_=|\+\+|--|\*\*|⊂⊃|×=|÷=|[+\-*/%<>=!?:|&.^~×÷⋀⋁⊻⊼¬∈∉⋃⋂∖\\⊂⊃«»@√⌊⌋⌈⌉])$/.test( token ) ) {
+		if ( /^[⊤⊥∅]$/.test( token ) ) {
+			return 'literal';
+		}
+
+		if ( /^(?:\.\.\.|<<<|>>>|\*\*=|\?:=|<=>|\?:|=>|->|→|@\?|@@|~=|:=|\.\(|\{\{|\}\}|<<|>>|«|»|\.\.|==|!=|<=|>=|≠|≤|≥|≡|≢|≶|≷|\+=|-=|\*=|\/=|%=|_=|\+\+|--|\*\*|⊂⊃|×=|÷=|[+\-*/%<>=!?:|&.^~×÷⋀⋁⊻⊼¬∈∉⋃⋂∖\\⊂⊃«»@√⌊⌋⌈⌉])$/.test( token ) ) {
 			return 'operator';
 		}
 
@@ -57,15 +117,15 @@
 			return 'punct';
 		}
 
-		if ( /^[A-Za-z_][\w$]*$/.test( token ) && KEYWORDS.has( token ) ) {
+		if ( IDENTIFIER_RE.test( token ) && KEYWORDS.has( token ) ) {
 			return 'keyword';
 		}
 
-		if ( /^[A-Za-z_][\w$]*$/.test( token ) && BUILTIN_TYPES.has( token ) ) {
+		if ( IDENTIFIER_RE.test( token ) && BUILTIN_TYPES.has( token ) ) {
 			return 'keyword';
 		}
 
-		if ( /^[A-Za-z_][\w$]*$/.test( token ) ) {
+		if ( IDENTIFIER_RE.test( token ) ) {
 			return 'ident';
 		}
 
@@ -73,7 +133,7 @@
 	}
 
 	function tokenizeCode( source ) {
-		var tokenPattern = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|0x[\da-fA-F]+|0b[01]+|\d+(?:\.\d+)?(?:e[+-]?\d+)?|\.\.\.|<<<|>>>|\*\*=|\?:=|<=>|\?:|=>|->|→|@\?|@@|~=|\{\{|\}\}|<<|>>|«|»|\.\.|==|!=|<=|>=|≠|≤|≥|≡|≢|≶|≷|\+=|-=|\*=|\/=|%=|_=|\+\+|--|\*\*|⊂⊃|×=|÷=|[+\-*/%<>=!?:|&.^~×÷⋀⋁⊻⊼¬∈∉⋃⋂∖\\⊂⊃@√⌊⌋⌈⌉]|[{}()[\],;.]|\s+|[A-Za-z_][\w$]*)/g;
+		var tokenPattern = new RegExp( TOKEN_PATTERN_SOURCE, TOKEN_PATTERN_FLAGS );
 		var html = '';
 		var match;
 		var lastIndex = 0;
@@ -147,6 +207,7 @@
 			'.zuzu-highlight { color: #d9dde7; background: #1f2430; }',
 			'.zuzu-highlight .zuzu-hl-keyword { color: #ffcc66; font-weight: 600; }',
 			'.zuzu-highlight .zuzu-hl-string { color: #95e6cb; }',
+			'.zuzu-highlight .zuzu-hl-literal { color: #f29e74; }',
 			'.zuzu-highlight .zuzu-hl-number { color: #f29e74; }',
 			'.zuzu-highlight .zuzu-hl-comment { color: #5c6773; font-style: italic; }',
 			'.zuzu-highlight .zuzu-hl-operator { color: #89ddff; }',

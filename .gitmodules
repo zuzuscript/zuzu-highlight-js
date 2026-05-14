@@ -1,6 +1,8 @@
 [submodule "docs/examples"]
 	path = docs/examples
 	url = git@github.com:zuzuscript/examples.git
+	branch = main
 [submodule "docs/userguide"]
 	path = docs/userguide
 	url = git@github.com:zuzuscript/userguide.git
+	branch = main

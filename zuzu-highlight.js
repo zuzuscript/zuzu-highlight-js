@@ -7,17 +7,21 @@
 
 	var STYLE_ID = 'zuzu-highlight-js-style';
 	var KEYWORDS = new Set( [
-		'abs', 'and', 'as', 'assert', 'async', 'await', 'but', 'can', 'case',
-		'catch', 'ceil', 'class', 'clear', 'cmp', 'cmpi', 'const', 'continue',
-		'debug', 'default', 'die', 'do', 'does', 'else', 'eq', 'eqi',
-		'equivalentof', 'extends', 'false', 'floor', 'fn', 'for', 'from',
-		'function', 'ge', 'gei', 'get', 'gt', 'gti', 'has', 'if', 'import',
-		'in', 'instanceof', 'int', 'intersection', 'last', 'lc', 'le', 'lei',
-		'length', 'let', 'lt', 'lti', 'method', 'mod', 'nand', 'ne', 'nei',
-		'new', 'next', 'not', 'null', 'or', 'print', 'return', 'round', 'say',
-		'self', 'set', 'spawn', 'sqrt', 'static', 'subsetof', 'supersetof',
-		'super', 'switch', 'throw', 'trait', 'true', 'try', 'typeof', 'uc',
-		'union', 'unless', 'warn', 'weak', 'while', 'with', 'xor'
+		'as', 'assert', 'async', 'await', 'but', 'case',
+		'catch', 'class', 'clear', 'const', 'continue',
+		'debug', 'die', 'do', 'else', 'extends', 'false', 'fn',
+		'for', 'from', 'function', 'get', 'has', 'if', 'import', 'last',
+		'let', 'method', 'new', 'next', 'null', 'print', 'return', 'say',
+		'self', 'set', 'spawn', 'static', 'super', 'switch', 'throw', 'trait',
+		'true', 'try', 'unless', 'warn', 'weak', 'while', 'with'
+	] );
+
+	var WORD_OPERATORS = new Set( [
+		'abs', 'and', 'can', 'ceil', 'cmp', 'cmpi', 'default', 'does', 'eq',
+		'eqi', 'equivalentof', 'floor', 'ge', 'gei', 'gt', 'gti', 'in',
+		'instanceof', 'int', 'intersection', 'lc', 'le', 'lei', 'length',
+		'lt', 'lti', 'mod', 'nand', 'ne', 'nei', 'not', 'or', 'round',
+		'sqrt', 'subsetof', 'supersetof', 'typeof', 'uc', 'union', 'xor'
 	] );
 
 	var BUILTIN_TYPES = new Set( [
@@ -84,7 +88,7 @@
 			.replace( />/g, '&gt;' );
 	}
 
-	function classifyToken( token ) {
+	function classifyToken( token, nextToken ) {
 		if ( /^\s+$/.test( token ) ) {
 			return 'ws';
 		}
@@ -121,6 +125,17 @@
 			return 'keyword';
 		}
 
+		if (
+			token === 'default'
+			&& nextToken === ':'
+		) {
+			return 'keyword';
+		}
+
+		if ( IDENTIFIER_RE.test( token ) && WORD_OPERATORS.has( token ) ) {
+			return 'operator';
+		}
+
 		if ( IDENTIFIER_RE.test( token ) && BUILTIN_TYPES.has( token ) ) {
 			return 'keyword';
 		}
@@ -134,31 +149,60 @@
 
 	function tokenizeCode( source ) {
 		var tokenPattern = new RegExp( TOKEN_PATTERN_SOURCE, TOKEN_PATTERN_FLAGS );
-		var html = '';
+		var parts = [];
 		var match;
 		var lastIndex = 0;
 
 		while ( ( match = tokenPattern.exec( source ) ) !== null ) {
 			if ( match.index > lastIndex ) {
-				html += escapeHtml( source.slice( lastIndex, match.index ) );
+				parts.push( {
+					token: source.slice( lastIndex, match.index ),
+					isToken: false
+				} );
 			}
 
-			var token = match[0];
-			var type = classifyToken( token );
+			parts.push( {
+				token: match[0],
+				isToken: true
+			} );
+			lastIndex = tokenPattern.lastIndex;
+		}
+
+		if ( lastIndex < source.length ) {
+			parts.push( {
+				token: source.slice( lastIndex ),
+				isToken: false
+			} );
+		}
+
+		var html = '';
+		parts.forEach( function ( part, idx ) {
+			var token = part.token;
+			if ( !part.isToken ) {
+				html += escapeHtml( token );
+				return;
+			}
+
+			var type = classifyToken( token, nextSignificantToken( parts, idx ) );
 			if ( type === 'ws' || type === 'plain' ) {
 				html += escapeHtml( token );
 			} else {
 				html += '<span class="zuzu-hl-' + type + '">' + escapeHtml( token ) + '</span>';
 			}
-
-			lastIndex = tokenPattern.lastIndex;
-		}
-
-		if ( lastIndex < source.length ) {
-			html += escapeHtml( source.slice( lastIndex ) );
-		}
+		} );
 
 		return html;
+	}
+
+	function nextSignificantToken( parts, idx ) {
+		for ( var look = idx + 1; look < parts.length; look++ ) {
+			if ( !parts[look].isToken || /^\s+$/.test( parts[look].token ) ) {
+				continue;
+			}
+			return parts[look].token;
+		}
+
+		return '';
 	}
 
 	function tokenize( source ) {

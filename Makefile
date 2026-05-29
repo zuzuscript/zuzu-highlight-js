@@ -9,10 +9,10 @@ all: dist
 
 dist: $(ZIP_FILE)
 
-$(ZIP_FILE): README.md zuzu-highlight.js
+$(ZIP_FILE): README.md CHANGELOG.md zuzu-highlight.js
 	rm -rf $(STAGING_DIR)
 	mkdir -p $(STAGING_DIR)/$(PACKAGE_NAME)
-	cp README.md zuzu-highlight.js $(STAGING_DIR)/$(PACKAGE_NAME)/
+	cp README.md CHANGELOG.md zuzu-highlight.js $(STAGING_DIR)/$(PACKAGE_NAME)/
 	rm -f $(ZIP_FILE)
 	cd $(STAGING_DIR) && zip -q -r ../$(ZIP_FILE) $(PACKAGE_NAME)
 	rm -rf $(STAGING_DIR)

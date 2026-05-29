@@ -7,6 +7,7 @@
 
 	var STYLE_ID = 'zuzu-highlight-js-style';
 	var KEYWORDS = new Set( [
+		'__argc__', '__file__', '__global__', '__system__',
 		'as', 'assert', 'async', 'await', 'but', 'case',
 		'catch', 'class', 'clear', 'const', 'continue',
 		'debug', 'die', 'do', 'else', 'extends', 'false', 'fn',
@@ -25,8 +26,11 @@
 	] );
 
 	var BUILTIN_TYPES = new Set( [
-		'Array', 'Bag', 'Boolean', 'Class', 'Collection', 'Dict', 'Function',
-		'Number', 'Object', 'Pair', 'PairList', 'Set', 'String', 'Trait'
+		'Any', 'Array', 'AssertionException', 'Bag', 'BinaryString',
+		'Boolean', 'CancelledException', 'ChannelClosedException', 'Class',
+		'Collection', 'Dict', 'Exception', 'Function', 'Null', 'Number',
+		'Object', 'Pair', 'PairList', 'Regexp', 'Set', 'String', 'Task',
+		'TimeoutException', 'Trait', 'TypeException'
 	] );
 	var IDENTIFIER_SOURCE = '(?:[A-Za-z]|_[A-Za-z0-9_])[A-Za-z0-9_]*';
 	var IDENTIFIER_FLAGS = '';
@@ -46,12 +50,13 @@
 		'"(?:\\\\.|[^"\\\\])*"',
 		"'(?:\\\\.|[^'\\\\])*'",
 		'`(?:\\\\.|[^`\\\\])*`',
-		'\\/(?![\\/\\*=\\s])(?:\\\\.|[^\\/\\\\\\n])+\\/[i]?',
+		'\\/(?![\\/\\*=\\s])(?:\\\\.|\\[[^\\]\\\\]*(?:\\\\.[^\\]\\\\]*)*\\]|\\$\\{[^}]*\\}|[^\\/\\\\\\n])+\\/[ig]*',
 		'0x[\\da-fA-F]+',
 		'0b[01]+',
 		'\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?',
 		'⊤|⊥|∅',
 		'\\.\\.\\.',
+		'\\^\\^',
 		'<<<|>>>',
 		'\\*\\*=',
 		'\\?:=',
@@ -59,6 +64,7 @@
 		'\\?:',
 		'=>',
 		'->|→',
+		'\\|>|<\\|',
 		'@\\?|@@',
 		'~=',
 		':=',
@@ -74,7 +80,7 @@
 		'\\*\\*',
 		'⊂⊃',
 		'×=|÷=',
-		'[+\\-*/%<>=!?:|&.^~×÷⋀⋁⊻⊼¬∈∉⋃⋂∖\\\\⊂⊃@√⌊⌋⌈⌉]',
+		'[+\\-*/%<>=!?:|&.^~×÷⋀⋁⊻⊼¬∈∉⋃⋂∖\\\\⊂⊃@√⌊⌋⌈⌉▷◁]',
 		'[{}()[\\],;.]',
 		'\\s+',
 		IDENTIFIER_SOURCE
@@ -101,7 +107,7 @@
 			return 'string';
 		}
 
-		if ( /^\/(?![\/\*=\s])(?:\\.|[^\/\\\n])+\/[i]?$/.test( token ) ) {
+		if ( /^\/(?![\/\*=\s])(?:\\.|\[[^\]\\]*(?:\\.[^\]\\]*)*\]|\$\{[^}]*\}|[^\/\\\n])+\/[ig]*$/.test( token ) ) {
 			return 'string';
 		}
 
@@ -113,7 +119,11 @@
 			return 'literal';
 		}
 
-		if ( /^(?:\.\.\.|<<<|>>>|\*\*=|\?:=|<=>|\?:|=>|->|→|@\?|@@|~=|:=|\.\(|\{\{|\}\}|<<|>>|«|»|\.\.|==|!=|<=|>=|≠|≤|≥|≡|≢|≶|≷|\+=|-=|\*=|\/=|%=|_=|\+\+|--|\*\*|⊂⊃|×=|÷=|[+\-*/%<>=!?:|&.^~×÷⋀⋁⊻⊼¬∈∉⋃⋂∖\\⊂⊃«»@√⌊⌋⌈⌉])$/.test( token ) ) {
+		if ( token === '^^' ) {
+			return 'ident';
+		}
+
+		if ( /^(?:\.\.\.|<<<|>>>|\*\*=|\?:=|<=>|\?:|=>|->|→|\|>|<\||@\?|@@|~=|:=|\.\(|\{\{|\}\}|<<|>>|«|»|\.\.|==|!=|<=|>=|≠|≤|≥|≡|≢|≶|≷|\+=|-=|\*=|\/=|%=|_=|\+\+|--|\*\*|⊂⊃|×=|÷=|[+\-*/%<>=!?:|&.^~×÷⋀⋁⊻⊼¬∈∉⋃⋂∖\\⊂⊃«»@√⌊⌋⌈⌉▷◁])$/.test( token ) ) {
 			return 'operator';
 		}
 

@@ -3,9 +3,13 @@ PACKAGE_NAME = zuzu-highlight-js-$(BUILD_DATE)
 ZIP_FILE = $(PACKAGE_NAME).zip
 STAGING_DIR = .dist-build
 
-.PHONY: all dist clean
+.PHONY: all dist test clean
 
 all: dist
+
+test:
+	node --check zuzu-highlight.js
+	node test/smoke.js
 
 dist: $(ZIP_FILE)
 

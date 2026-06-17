@@ -18,11 +18,13 @@
 	] );
 
 	var WORD_OPERATORS = new Set( [
-		'abs', 'and', 'can', 'ceil', 'cmp', 'cmpi', 'default', 'does', 'eq',
-		'eqi', 'equivalentof', 'floor', 'ge', 'gei', 'gt', 'gti', 'in',
-		'instanceof', 'int', 'intersection', 'lc', 'le', 'lei', 'length',
-		'lt', 'lti', 'mod', 'nand', 'ne', 'nei', 'not', 'or', 'round',
-		'sqrt', 'subsetof', 'supersetof', 'typeof', 'uc', 'union', 'xor'
+		'abs', 'and', 'and?', 'butnot', 'butnot?', 'can', 'ceil', 'cmp',
+		'cmpi', 'default', 'divides', 'does', 'eq', 'eqi', 'equivalentof',
+		'floor', 'ge', 'gei', 'gt', 'gti', 'in', 'instanceof', 'int',
+		'intersection', 'lc', 'le', 'lei', 'length', 'lt', 'lti', 'mod',
+		'nand', 'nand?', 'ne', 'nei', 'nor', 'nor?', 'not', 'onlyif',
+		'onlyif?', 'or', 'or?', 'round', 'sqrt', 'subsetof', 'supersetof',
+		'typeof', 'uc', 'union', 'xnor', 'xnor?', 'xor', 'xor?'
 	] );
 
 	var BUILTIN_TYPES = new Set( [
@@ -53,8 +55,10 @@
 		'\\/(?![\\/\\*=\\s])(?:\\\\.|\\[[^\\]\\\\]*(?:\\\\.[^\\]\\\\]*)*\\]|\\$\\{[^}]*\\}|[^\\/\\\\\\n])+\\/[ig]*',
 		'0x[\\da-fA-F]+',
 		'0b[01]+',
-		'\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?',
+		'0o[0-7]+',
+		'\\d+(?:\\.\\d+)?(?:E[+-]?\\d+)?',
 		'⊤|⊥|∅',
+		'\\b(?:and|or|xor|nand|nor|xnor|onlyif|butnot)\\?',
 		'\\.\\.\\.',
 		'\\^\\^',
 		'<<<|>>>',
@@ -73,14 +77,16 @@
 		'<<|>>',
 		'«|»',
 		'\\.\\.',
+		'⋀\\?|⋁\\?|⊻\\?|⊼\\?|⊽\\?|↔\\?|⊨\\?|⊭\\?',
 		'==|!=|<=|>=',
 		'≠|≤|≥|≡|≢|≶|≷',
+		'∣|∤',
 		'\\+=|-=|\\*=|\\/=|%=|_=',
 		'\\+\\+|--',
 		'\\*\\*',
 		'⊂⊃',
 		'×=|÷=',
-		'[+\\-*/%<>=!?:|&.^~×÷⋀⋁⊻⊼¬∈∉⋃⋂∖\\\\⊂⊃@√⌊⌋⌈⌉▷◁]',
+		'[+\\-*/%<>=!?:|&.^~×÷⋀⋁⊻⊼⊽↔⊨⊭¬∈∉⋃⋂∖\\\\⊂⊃@√⌊⌋⌈⌉▷◁]',
 		'[{}()[\\],;.]',
 		'\\s+',
 		IDENTIFIER_SOURCE
@@ -111,7 +117,7 @@
 			return 'string';
 		}
 
-		if ( /^(?:0x[\da-f]+|0b[01]+|\d+(?:\.\d+)?(?:e[+-]?\d+)?)$/i.test( token ) ) {
+		if ( /^(?:0x[\da-fA-F]+|0b[01]+|0o[0-7]+|\d+(?:\.\d+)?(?:E[+-]?\d+)?)$/.test( token ) ) {
 			return 'number';
 		}
 
@@ -123,7 +129,7 @@
 			return 'ident';
 		}
 
-		if ( /^(?:\.\.\.|<<<|>>>|\*\*=|\?:=|<=>|\?:|=>|->|→|\|>|<\||@\?|@@|~=|:=|\.\(|\{\{|\}\}|<<|>>|«|»|\.\.|==|!=|<=|>=|≠|≤|≥|≡|≢|≶|≷|\+=|-=|\*=|\/=|%=|_=|\+\+|--|\*\*|⊂⊃|×=|÷=|[+\-*/%<>=!?:|&.^~×÷⋀⋁⊻⊼¬∈∉⋃⋂∖\\⊂⊃«»@√⌊⌋⌈⌉▷◁])$/.test( token ) ) {
+		if ( /^(?:\.\.\.|<<<|>>>|\*\*=|\?:=|<=>|\?:|=>|->|→|\|>|<\||@\?|@@|~=|:=|\.\(|\{\{|\}\}|<<|>>|«|»|\.\.|⋀\?|⋁\?|⊻\?|⊼\?|⊽\?|↔\?|⊨\?|⊭\?|==|!=|<=|>=|≠|≤|≥|≡|≢|≶|≷|∣|∤|\+=|-=|\*=|\/=|%=|_=|\+\+|--|\*\*|⊂⊃|×=|÷=|[+\-*/%<>=!?:|&.^~×÷⋀⋁⊻⊼⊽↔⊨⊭¬∈∉⋃⋂∖\\⊂⊃«»@√⌊⌋⌈⌉▷◁])$/.test( token ) ) {
 			return 'operator';
 		}
 
@@ -142,7 +148,7 @@
 			return 'keyword';
 		}
 
-		if ( IDENTIFIER_RE.test( token ) && WORD_OPERATORS.has( token ) ) {
+		if ( WORD_OPERATORS.has( token ) ) {
 			return 'operator';
 		}
 

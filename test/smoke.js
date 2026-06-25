@@ -7,6 +7,7 @@ const source = [
 	'let divided := 2 divides 6 and 2 ∣ 6 and 4 ∤ 6;',
 	'let logical := true nor? false xnor true onlyif? true butnot false;',
 	'let symbolic := true ⊽? false ↔ true ⊨? true ⊭ false;',
+	'let cardinality := #items;',
 	'let opts := capture(length: 42, method: "GET", class: "Widget");',
 	'=pod',
 	'plain POD',
@@ -58,7 +59,7 @@ for ( const token of [ '0x1F', '0b1111', '0o100', '1E3', '2.5E-7' ] ) {
 
 for ( const token of [
 	'divides', '∣', '∤', 'and', 'nor?', 'xnor', 'onlyif?', 'butnot',
-	'⊽?', '↔', '⊨?', '⊭',
+	'⊽?', '↔', '⊨?', '⊭', '#',
 ] ) {
 	assert(
 		html.includes( `<span class="zuzu-hl-operator">${token}</span>` ),
